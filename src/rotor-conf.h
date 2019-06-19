@@ -51,6 +51,8 @@ typedef struct {
     gdouble         maxel;      /*!< Upper elevation limit */
     gdouble         azstoppos;  /*!< absolute position of rotation stops; normally = minaz */
     gdouble         threshold;  /*!< Angle difference that triggers new motion command */
+    gboolean		autotrack;	/*!< At program start automatically start tracking */
+    gboolean		autoengage;	/*!< At program start automatically engage rotator */
 } rotor_conf_t;
 
 

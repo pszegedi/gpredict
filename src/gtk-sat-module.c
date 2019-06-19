@@ -1029,6 +1029,20 @@ GtkWidget *gtk_sat_module_new(const gchar * cfgfile)
         module->state = GTK_SAT_MOD_STATE_DOCKED;
     }
 
+    /* module autostart rotator */
+    if ((g_key_file_has_key(module->cfgdata,
+                            MOD_CFG_GLOBAL_SECTION,
+                            MOD_CFG_AUTOSTARTROT, NULL)))
+    {
+        module->autostartrot = g_key_file_get_boolean(module->cfgdata,
+                                               MOD_CFG_GLOBAL_SECTION,
+											   MOD_CFG_AUTOSTARTROT, NULL);
+    }
+    else
+    {
+        module->autostartrot = FALSE;
+    }
+
     /* time keeping */
     module->rtNow = get_current_daynum();
     module->rtPrev = get_current_daynum();
@@ -1078,6 +1092,12 @@ GtkWidget *gtk_sat_module_new(const gchar * cfgfile)
     /* start timeout */
     module->timerid = g_timeout_add(module->timeout, gtk_sat_module_timeout_cb,
                                     module);
+
+    if (module->autostartrot)
+    {
+    	gtk_sat_module_popup(module);
+    	gtk_menu_popdown(GTK_MENU(module->popupmenu));
+    }
 
     return GTK_WIDGET(module);
 }

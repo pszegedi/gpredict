@@ -50,6 +50,7 @@ struct _gtk_sat_module {
     gchar          *name;       /*!< The module name */
 
     GtkWidget      *popup_button;       /*!< popup menu button. */
+    GtkWidget      *popupmenu; 			/*!< popup menu window */
     GtkWidget      *close_button;       /*!< The close button */
 
     GtkWidget      *win;        /*!< Window when module is not docked */
@@ -115,6 +116,7 @@ struct _gtk_sat_module {
     /* auto-tracking */
     gint            target;     /*!< Target satellite */
     gboolean        autotrack;  /*!< Whether automatic tracking is enabled */
+    gboolean        autostartrot;  /*!< Whether automatic start of rotator is enabled at program start */
 
     /* location structure */
     struct gps_data_t *gps_data;        /*!< GPSD data structure */

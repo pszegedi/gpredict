@@ -44,6 +44,8 @@ struct _gtk_rot_ctrl {
     GtkWidget      *plot;       /*!< Polar plot widget */
     GtkWidget      *LockBut;
     GtkWidget      *MonitorCheckBox;
+    GtkWidget      *AutoEngageCheckBox;
+    GtkWidget      *AutoTrackCheckBox;
     GtkWidget      *track;
     GtkWidget      *cycle_spin;      /*!< Update timer cycle */
     GtkWidget      *thld_spin;       /*!< Threshold spin */

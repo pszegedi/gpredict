@@ -93,6 +93,7 @@ void gtk_sat_module_popup(GtkSatModule * module)
     }
 
     menu = gtk_menu_new();
+    module->popupmenu=menu;
 
     if (module->state == GTK_SAT_MOD_STATE_DOCKED)
     {
@@ -185,6 +186,12 @@ void gtk_sat_module_popup(GtkSatModule * module)
     menuitem = gtk_menu_item_new_with_label(_("Antenna Control"));
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
     g_signal_connect(menuitem, "activate", G_CALLBACK(rotctrl_cb), module);
+
+    if (module->autostartrot)
+    {
+    	module->autostartrot=FALSE;
+    	gtk_menu_item_activate(menuitem);
+    }
 
     /* separator */
     menuitem = gtk_separator_menu_item_new();

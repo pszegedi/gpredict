@@ -400,6 +400,8 @@ static gpointer rotctld_client_thread(gpointer data)
     gboolean        io_error = FALSE;
     GtkRotCtrl     *ctrl = GTK_ROT_CTRL(data);
 
+    if (ctrl==NULL) return NULL;
+
     g_print("Starting rotctld client thread\n");
 
     ctrl->client.socket = rotctld_socket_open(ctrl->conf->host,
@@ -712,6 +714,7 @@ static void track_toggle_cb(GtkToggleButton * button, gpointer data)
 {
     GtkRotCtrl     *ctrl = GTK_ROT_CTRL(data);
     gboolean        locked;
+    if (ctrl==NULL) return;
 
     locked = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ctrl->LockBut));
     ctrl->tracking = gtk_toggle_button_get_active(button);
@@ -739,6 +742,7 @@ static gboolean rot_ctrl_timeout_cb(gpointer data)
     /* parameters for path predictions */
     gdouble         time_delta;
     gdouble         step_size;
+    if (ctrl==NULL) return TRUE;
 
 #define SAFE_AZI(azi) CLAMP(azi, ctrl->conf->minaz, ctrl->conf->maxaz)
 #define SAFE_ELE(ele) CLAMP(ele, ctrl->conf->minel, ctrl->conf->maxel)
@@ -1024,13 +1028,17 @@ static gboolean rot_ctrl_timeout_cb(gpointer data)
 static void delay_changed_cb(GtkSpinButton * spin, gpointer data)
 {
     GtkRotCtrl     *ctrl = GTK_ROT_CTRL(data);
+    if (ctrl==NULL) return;
 
     ctrl->delay = (guint) gtk_spin_button_get_value(spin);
     if (ctrl->conf)
         ctrl->conf->cycle = ctrl->delay;
 
     if (ctrl->timerid > 0)
+    {
         g_source_remove(ctrl->timerid);
+        ctrl->timerid=0;
+    }
 
     ctrl->timerid = g_timeout_add(ctrl->delay, rot_ctrl_timeout_cb, ctrl);
 }
@@ -1047,7 +1055,7 @@ static void delay_changed_cb(GtkSpinButton * spin, gpointer data)
 static void threshold_changed_cb(GtkSpinButton * spin, gpointer data)
 {
     GtkRotCtrl     *ctrl = GTK_ROT_CTRL(data);
-
+    if (ctrl==NULL) return;
     ctrl->threshold = gtk_spin_button_get_value(spin);
     if (ctrl->conf)
         ctrl->conf->threshold = ctrl->threshold;
@@ -1065,7 +1073,7 @@ static void threshold_changed_cb(GtkSpinButton * spin, gpointer data)
 static void rot_selected_cb(GtkComboBox * box, gpointer data)
 {
     GtkRotCtrl     *ctrl = GTK_ROT_CTRL(data);
-
+    if (ctrl==NULL) return;
     /* free previous configuration */
     if (ctrl->conf != NULL)
     {
@@ -1103,6 +1111,37 @@ static void rot_selected_cb(GtkComboBox * box, gpointer data)
         gtk_rot_knob_set_range(GTK_ROT_KNOB(ctrl->ElSet), ctrl->conf->minel,
                                ctrl->conf->maxel);
 
+        if (ctrl->conf->autotrack)
+        {
+        	if (ctrl->LockBut != NULL)
+        	{
+        		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ctrl->track),
+        		                                             TRUE);
+        		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ctrl->AutoTrackCheckBox),
+        		                                             TRUE);
+        	}
+        	else
+                sat_log_log(SAT_LOG_LEVEL_ERROR,
+                            _("%s:%d: Failed to track %s track is NULL"),
+                            __FILE__, __LINE__, ctrl->conf->name);
+
+        }
+
+        if (ctrl->conf->autoengage)
+        {
+        	if (ctrl->LockBut != NULL)
+        	{
+        		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ctrl->LockBut),
+        		                                             TRUE);
+        		gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ctrl->AutoEngageCheckBox),
+        		                                             TRUE);
+        	}
+        	else
+                sat_log_log(SAT_LOG_LEVEL_ERROR,
+                            _("%s:%d: Failed to engage rotator %s LockBut is NULL"),
+                            __FILE__, __LINE__, ctrl->conf->name);
+        }
+
         /* Update flipped when changing rotor if there is a plot */
         set_flipped_pass(ctrl);
     }
@@ -1128,11 +1167,35 @@ static void rot_selected_cb(GtkComboBox * box, gpointer data)
 static void rot_monitor_cb(GtkCheckButton * button, gpointer data)
 {
     GtkRotCtrl     *ctrl = GTK_ROT_CTRL(data);
-
+    if (ctrl==NULL) return;
     ctrl->monitor = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button));
     gtk_widget_set_sensitive(ctrl->AzSet, !ctrl->monitor);
     gtk_widget_set_sensitive(ctrl->ElSet, !ctrl->monitor);
     gtk_widget_set_sensitive(ctrl->track, !ctrl->monitor);
+}
+
+/**
+ * Auto track mode
+ *
+ * Change tracking at program start
+ */
+static void rot_autotrack_cb(GtkCheckButton * button, gpointer data)
+{
+    GtkRotCtrl     *ctrl = GTK_ROT_CTRL(data);
+    if (ctrl==NULL) return;
+    ctrl->conf->autotrack = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button));
+}
+
+/**
+ * Auto engage mode
+ *
+ * Change angage at program start
+ */
+static void rot_autoengage_cb(GtkCheckButton * button, gpointer data)
+{
+    GtkRotCtrl     *ctrl = GTK_ROT_CTRL(data);
+    if (ctrl==NULL) return;
+    ctrl->conf->autoengage = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(button));
 }
 
 /**
@@ -1150,7 +1213,7 @@ static void rot_locked_cb(GtkToggleButton * button, gpointer data)
     gchar           buffback[128];
     gboolean        retcode;
     gint            retval;
-
+    if (ctrl==NULL) return;
     if (!gtk_toggle_button_get_active(button))
     {
         ctrl->engaged = FALSE;
@@ -1217,7 +1280,7 @@ static void sat_selected_cb(GtkComboBox * satsel, gpointer data)
 {
     GtkRotCtrl     *ctrl = GTK_ROT_CTRL(data);
     gint            i;
-
+    if (ctrl==NULL) return;
     i = gtk_combo_box_get_active(satsel);
     if (i >= 0)
     {
@@ -1294,6 +1357,14 @@ static GtkWidget *create_target_widgets(GtkRotCtrl * ctrl)
     gtk_grid_attach(GTK_GRID(table), ctrl->track, 2, 0, 1, 1);
     g_signal_connect(ctrl->track, "toggled", G_CALLBACK(track_toggle_cb),
                      ctrl);
+
+    /* Autotrack checkbox */
+    ctrl->AutoTrackCheckBox = gtk_check_button_new_with_label(_("Auto track"));
+    gtk_widget_set_tooltip_text(ctrl->AutoTrackCheckBox,
+                                _("Auto track sat. at program start"));
+    g_signal_connect(ctrl->AutoTrackCheckBox, "toggled",
+                     G_CALLBACK(rot_autotrack_cb), ctrl);
+    gtk_grid_attach(GTK_GRID(table), ctrl->AutoTrackCheckBox, 2, 1, 1, 1);
 
     /* Azimuth */
     label = gtk_label_new(_("Az:"));
@@ -1411,6 +1482,14 @@ static GtkWidget *create_conf_widgets(GtkRotCtrl * ctrl)
                      ctrl);
     gtk_grid_attach(GTK_GRID(table), ctrl->LockBut, 2, 0, 1, 1);
 
+    /* Autoengage checkbox */
+    ctrl->AutoEngageCheckBox = gtk_check_button_new_with_label(_("Auto engage"));
+    gtk_widget_set_tooltip_text(ctrl->AutoEngageCheckBox,
+                                _("Auto engage rotator at program start"));
+    g_signal_connect(ctrl->AutoEngageCheckBox, "toggled",
+                     G_CALLBACK(rot_autoengage_cb), ctrl);
+    gtk_grid_attach(GTK_GRID(table), ctrl->AutoEngageCheckBox, 2, 1, 1, 1);
+
     /* Monitor checkbox */
     ctrl->MonitorCheckBox = gtk_check_button_new_with_label(_("Monitor"));
     gtk_widget_set_tooltip_text(ctrl->MonitorCheckBox,
@@ -1486,7 +1565,7 @@ static void store_sats(gpointer key, gpointer value, gpointer user_data)
 {
     GtkRotCtrl     *ctrl = GTK_ROT_CTRL(user_data);
     sat_t          *sat = SAT(value);
-
+    if (ctrl==NULL) return;
     (void)key;                  /* avoid unused variable warning */
 
     ctrl->sats = g_slist_insert_sorted(ctrl->sats, sat,
@@ -1557,10 +1636,13 @@ static void gtk_rot_ctrl_init(GtkRotCtrl * ctrl)
 static void gtk_rot_ctrl_destroy(GtkWidget * widget)
 {
     GtkRotCtrl     *ctrl = GTK_ROT_CTRL(widget);
-
+    if (ctrl==NULL) return;
     /* stop timer */
     if (ctrl->timerid > 0)
+    {
         g_source_remove(ctrl->timerid);
+        ctrl->timerid=0;
+    }
 
     /* free configuration */
     if (ctrl->conf != NULL)
@@ -1573,13 +1655,13 @@ static void gtk_rot_ctrl_destroy(GtkWidget * widget)
     }
 
     /* stop client thread */
-    if (ctrl->client.running)
-    {
-        ctrl->client.running = FALSE;
-        g_thread_join(ctrl->client.thread);
-    }
+     if (ctrl->client.running)
+     {
+         ctrl->client.running = FALSE;
+         g_thread_join(ctrl->client.thread);
+     }
 
-    g_mutex_clear(&ctrl->client.mutex);
+     g_mutex_clear(&ctrl->client.mutex);
 
     (*GTK_WIDGET_CLASS(parent_class)->destroy) (widget);
 }
@@ -1629,7 +1711,7 @@ GtkWidget      *gtk_rot_ctrl_new(GtkSatModule * module)
         return NULL;
 
     rot_ctrl = GTK_ROT_CTRL(g_object_new(GTK_TYPE_ROT_CTRL, NULL));
-
+    if (rot_ctrl==NULL) return NULL;
     /* store satellites */
     g_hash_table_foreach(module->satellites, store_sats, rot_ctrl);
 

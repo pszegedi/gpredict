@@ -75,6 +75,7 @@
 #define MOD_CFG_VIEW_3          "VIEW_3"      /* Old layout before v1.2 */
 #define MOD_CFG_GRID            "GRID"        /* New grid layout since v1.2 */
 #define MOD_CFG_STATE           "STATE"
+#define MOD_CFG_AUTOSTARTROT    "AUTOSTARTROT"
 #define MOD_CFG_WIN_POS_X       "WIN_POS_X"
 #define MOD_CFG_WIN_POS_Y       "WIN_POS_Y"
 #define MOD_CFG_WIN_WIDTH       "WIN_WIDTH"

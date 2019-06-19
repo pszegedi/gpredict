@@ -45,6 +45,9 @@
 #define KEY_MAXEL       "MaxEl"
 #define KEY_AZSTOPPOS   "AzStopPos"
 #define KEY_THLD        "Threshold"
+#define KEY_AUTOT       "Autotrack"
+#define KEY_AUTOE       "Autoengage"
+
 
 #define DEFAULT_CYCLE_MS    1000
 #define DEFAULT_THLD_DEG    5.0
@@ -216,6 +219,26 @@ gboolean rotor_conf_read(rotor_conf_t * conf)
         conf->azstoppos = conf->minaz;
     }
 
+    conf->autoengage = g_key_file_get_boolean(cfg, GROUP, KEY_AUTOE, &error);
+    if (error != NULL)
+    {
+        sat_log_log(SAT_LOG_LEVEL_INFO,
+                    _("%s: Autoengage not defined for %s. Assuming FALSE."),
+                    __func__, conf->name);
+        g_clear_error(&error);
+        conf->autoengage = FALSE;
+    }
+
+    conf->autotrack = g_key_file_get_boolean(cfg, GROUP, KEY_AUTOT, &error);
+    if (error != NULL)
+    {
+        sat_log_log(SAT_LOG_LEVEL_INFO,
+                    _("%s: Autotrack not defined for %s. Assuming FALSE."),
+                    __func__, conf->name);
+        g_clear_error(&error);
+        conf->autotrack = FALSE;
+    }
+
     g_key_file_free(cfg);
 
     return TRUE;
@@ -249,6 +272,8 @@ void rotor_conf_save(rotor_conf_t * conf)
     g_key_file_set_double(cfg, GROUP, KEY_MINEL, conf->minel);
     g_key_file_set_double(cfg, GROUP, KEY_MAXEL, conf->maxel);
     g_key_file_set_double(cfg, GROUP, KEY_AZSTOPPOS, conf->azstoppos);
+    g_key_file_set_boolean(cfg, GROUP, KEY_AUTOT, conf->autotrack);
+    g_key_file_set_boolean(cfg, GROUP, KEY_AUTOE, conf->autoengage);
 
     if (conf->cycle == DEFAULT_CYCLE_MS)
         g_key_file_remove_key(cfg, GROUP, KEY_CYCLE, NULL);
