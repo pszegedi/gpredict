@@ -42,6 +42,11 @@
 #include <winsock2.h>
 #endif
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <time.h>
+
 #include <errno.h>
 #include <glib.h>
 #include <glib/gi18n.h>
@@ -399,10 +404,41 @@ static gpointer rotctld_client_thread(gpointer data)
     gboolean        new_trg = FALSE;
     gboolean        io_error = FALSE;
     GtkRotCtrl     *ctrl = GTK_ROT_CTRL(data);
+    time_t now;
+    time_t start_time;
+    time_t stop_time;
+    time_t aos;
+	char starttime_s[80];
+	char stoptime_s[80];
+	char fileName[128];
+    struct tm starttime;
+    struct tm stoptime;
+    FILE* dout_f;
+    int n;
+    struct stat st_buf;
 
     if (ctrl==NULL) return NULL;
 
     g_print("Starting rotctld client thread\n");
+
+    // check for tracking directory
+	n=stat("tracking",&st_buf);
+	if (n!=0){
+		mkdir("tracking",0777);
+		sat_log_log(SAT_LOG_LEVEL_WARN,
+		                        _
+		                        ("%s:%d: Creating tracking directory"),
+		                        __FILE__, __LINE__);
+	}
+	// check for tracking/archive directory
+	n=stat("tracking/archive",&st_buf);
+	if (n!=0){
+		mkdir("tracking/archive",0777);
+		sat_log_log(SAT_LOG_LEVEL_WARN,
+		                        _
+		                        ("%s:%d: Creating tracking/archive directory"),
+		                        __FILE__, __LINE__);
+	}
 
     ctrl->client.socket = rotctld_socket_open(ctrl->conf->host,
                                               ctrl->conf->port);
@@ -447,7 +483,37 @@ static gpointer rotctld_client_thread(gpointer data)
         ctrl->client.new_trg = new_trg;
         ctrl->client.io_error = io_error;
         g_mutex_unlock(&ctrl->client.mutex);
+        aos=(ctrl->pass->aos - 2440587.5) * 86400.;
+    	time(&now);
+    	g_print("aos:%ld, now:%ld, el:%f\n",aos,now,ctrl->target->el);
+        if ((aos<now)||(ctrl->target->el>-1.0)){
+        	if (start_time==0){
+        		start_time=now;
+        		dout_f = fopen("tracking/rot_work.txt","w+");
+        	}
+        	if (dout_f!=NULL){
+        		// write date, azimuth, elevation, delta_az, delta_el to file rot_work.txt
+        		fprintf(dout_f,"%lu;%f;%f;%f;%f\n",now,azi,ele,ctrl->target->az-azi,ctrl->target->el-ele );
+        		fflush(dout_f);
+        	}
+        }
+        if (ctrl->target->el<-1){
+        	if (dout_f!=NULL){
+        		fclose(dout_f);
+        		dout_f=NULL;
 
+        		time(&now);
+        		gmtime_r(&now,&stoptime);
+        		gmtime_r(&start_time,&starttime);
+        		start_time=0;
+        		strftime(starttime_s,80,"%Y%m%d_%H%M%S",&starttime);
+        		strftime(stoptime_s,80,"%Y%m%d_%H%M%S",&stoptime);
+        		snprintf(fileName,128,"tracking/archive/%s-%s_rot.txt",starttime_s,stoptime_s);
+
+        		// move doppler_work.txt into archive/doppler_list_<start date>-<end date>.txt
+        		rename("tracking/rot_work.txt", fileName);
+        	}
+        }
         /* ensure rotctl duty cycle stays below 50%, but wait at least 700 ms (TBC) */
         elapsed_time = MAX(g_timer_elapsed(ctrl->client.timer, NULL), 0.7);
         g_usleep(elapsed_time * 1e6);
