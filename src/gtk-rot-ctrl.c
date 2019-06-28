@@ -485,8 +485,8 @@ static gpointer rotctld_client_thread(gpointer data)
         g_mutex_unlock(&ctrl->client.mutex);
         aos=(ctrl->pass->aos - 2440587.5) * 86400.;
     	time(&now);
-    	g_print("aos:%ld, now:%ld, el:%f\n",aos,now,ctrl->target->el);
-        if ((aos<now)||(ctrl->target->el>-1.0)){
+//    	g_print("aos:%ld, now:%ld, el:%f\n",aos,now,ctrl->target->el);
+        if ((aos<now)||(ctrl->target->el>=0)){
         	if (start_time==0){
         		start_time=now;
         		dout_f = fopen("tracking/rot_work.txt","w+");
@@ -496,11 +496,11 @@ static gpointer rotctld_client_thread(gpointer data)
         	}
         	if (dout_f!=NULL){
         		// write date, azimuth, elevation, delta_az, delta_el to file rot_work.txt
-        		fprintf(dout_f,"%lu;%f;%f;%f;%f\n",now,azi,ele,ctrl->target->az-azi,ctrl->target->el-ele );
+        		fprintf(dout_f,"%lu;%.2f;%.2f;%.2f;%.2f\n",now,azi,ele,ctrl->target->az-azi,ctrl->target->el-ele );
         		fflush(dout_f);
         	}
         }
-        if (ctrl->target->el<-1){
+        if (ctrl->target->el<0){
         	if (dout_f!=NULL){
         		fclose(dout_f);
         		dout_f=NULL;
@@ -511,7 +511,7 @@ static gpointer rotctld_client_thread(gpointer data)
         		start_time=0;
         		strftime(starttime_s,80,"%Y%m%d_%H%M%S",&starttime);
         		strftime(stoptime_s,80,"%Y%m%d_%H%M%S",&stoptime);
-        		snprintf(fileName,128,"tracking/archive/%s-%s_rot.txt",starttime_s,stoptime_s);
+        		snprintf(fileName,128,"tracking/archive/%s-%s_%s_rot.txt",starttime_s,stoptime_s,ctrl->target->name);
 
         		// move doppler_work.txt into archive/doppler_list_<start date>-<end date>.txt
         		rename("tracking/rot_work.txt", fileName);
