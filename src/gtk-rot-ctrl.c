@@ -406,8 +406,8 @@ static gpointer rotctld_client_thread(gpointer data)
     GtkRotCtrl     *ctrl = GTK_ROT_CTRL(data);
     time_t now;
     time_t start_time=0;
-    time_t stop_time;
-    time_t aos;
+//    time_t stop_time;
+//    time_t aos;
 	char starttime_s[80];
 	char stoptime_s[80];
 	char fileName[128];
@@ -483,11 +483,11 @@ static gpointer rotctld_client_thread(gpointer data)
         ctrl->client.new_trg = new_trg;
         ctrl->client.io_error = io_error;
         g_mutex_unlock(&ctrl->client.mutex);
-        aos=(ctrl->pass->aos - 2440587.5) * 86400.;
+//        aos=(ctrl->pass->aos - 2440587.5) * 86400.;
     	time(&now);
 //    	g_print("aos:%ld, now:%ld, el:%f\n",aos,now,ctrl->target->el);
-        if ((aos<now)||(ctrl->target->el>=0)){
-        	if (start_time==0){
+        if ((ctrl->target->el>=0)){
+        	if ((start_time==0)||(dout_f==NULL)){
         		start_time=now;
         		dout_f = fopen("tracking/rot_work.txt","w+");
         		if (dout_f==NULL){
