@@ -492,6 +492,9 @@ static gpointer rotctld_client_thread(gpointer data)
         		dout_f = fopen("tracking/rot_work.txt","w+");
         		if (dout_f==NULL){
         			g_print("Error opening rot_work.txt\n");
+        		}else{
+            		fprintf(dout_f,"time;az;el;d_az;d_el\n");
+            		fflush(dout_f);
         		}
         	}
         	if (dout_f!=NULL){
