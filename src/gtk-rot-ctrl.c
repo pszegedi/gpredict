@@ -405,7 +405,7 @@ static gpointer rotctld_client_thread(gpointer data)
     gboolean        io_error = FALSE;
     GtkRotCtrl     *ctrl = GTK_ROT_CTRL(data);
     time_t now;
-    time_t start_time;
+    time_t start_time=0;
     time_t stop_time;
     time_t aos;
 	char starttime_s[80];
@@ -413,7 +413,7 @@ static gpointer rotctld_client_thread(gpointer data)
 	char fileName[128];
     struct tm starttime;
     struct tm stoptime;
-    FILE* dout_f;
+    FILE* dout_f=NULL;
     int n;
     struct stat st_buf;
 
@@ -490,6 +490,9 @@ static gpointer rotctld_client_thread(gpointer data)
         	if (start_time==0){
         		start_time=now;
         		dout_f = fopen("tracking/rot_work.txt","w+");
+        		if (dout_f==NULL){
+        			g_print("Error opening rot_work.txt\n");
+        		}
         	}
         	if (dout_f!=NULL){
         		// write date, azimuth, elevation, delta_az, delta_el to file rot_work.txt
